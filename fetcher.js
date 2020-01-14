@@ -1,6 +1,6 @@
 ﻿// ==UserScript==
 // @name         maidx-analyzer-fetcher
-// @namespace    http://tampermonkey.net/
+// @namespace    https://devildelta.github.io/maidx-analyzer/
 // @version      1.0
 // @description  Fetch the best scores from level page and stores into localStorage for later handle.
 // @author       devildelta

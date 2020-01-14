@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         maidx-analyzer-calculator
-// @namespace    http://tampermonkey.net/
+// @namespace    https://devildelta.github.io/maidx-analyzer/
 // @version      1.0
 // @description  Calculate the rating from collected information, and inject into homepage for display.
 // @author       devildelta
@@ -95,7 +95,11 @@
 		console.log(DX);
 		DX.forEach((e)=>injectHighRatingDetail(e.isDX,e.diff,e.name,e.inLv,e.rating,e.percentage));
 		let finalRating = ST.reduce((s,v)=>s+v.rating,0) + DX.reduce((s,v)=>s+v.rating,0);
-		console.log(finalRating);
+		let STRating = ST.map((e)=>e.rating).reduce((s,v)=>s+v,0);
+		let DXRating = DX.map((e)=>e.rating).reduce((s,v)=>s+v,0);
+		//let gradeRating = map imgsrc to rating points.
+		console.log(STRating+" + "+DXRating+" = "+finalRating);
+		injectStatistics(STRating,DXRating);
 	}
 	
 	function injectHighRatingDetail(isDX,diff,name,inLv,rating,percentage){
@@ -118,6 +122,11 @@
 		injectElement.find(".music_score_block.rating").html(rating);
 		injectElement.find(".music_score_block.percentage").html(percentage+"%");
 		$("div.see_through_block").append(injectElement);
+	}
+	
+	function injectStatistics(STRating,DXRating){
+		$(".basic_block").after($("<div class='m_5 m_t_10 t_r f_12'>Standard Rating: "+STRating+" Rating per song: "+(STRating/15).toFixed(2)+"</div>"));
+		$(".basic_block").after($("<div class='m_5 m_t_10 t_r f_12'>DX Rating: "+DXRating+" Rating per song: "+(DXRating/25).toFixed(2)+"</div>"));
 	}
     $(document).ready(()=>{
         if(!window.localStorage.getItem("lastUpdateTime") || (Date.now() - 86400000) > parseInt(window.localStorage.getItem("lastUpdateTime"))){
