@@ -1,11 +1,33 @@
-	function initInLvl(){
+// ==UserScript==
+// @name         maidx-analyzer-calculator
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Calculate the rating from collected information, and inject into homepage for display.
+// @author       devildelta
+// @match        https://maimaidx-eng.com/maimai-mobile/playerData/
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+    const LEVEL_STRING = ["basic","advanced","expert","master","remaster"];
+	const imgsrc = {
+		"https://maimaidx-eng.com/maimai-mobile/img/diff_basic.png" : "basic",
+		"https://maimaidx-eng.com/maimai-mobile/img/diff_advanced.png" : "advanced",
+		"https://maimaidx-eng.com/maimai-mobile/img/diff_expert.png" : "expert",
+		"https://maimaidx-eng.com/maimai-mobile/img/diff_master.png" : "master",
+		"https://maimaidx-eng.com/maimai-mobile/img/diff_remaster.png" : "remaster",
+		"https://maimaidx-eng.com/maimai-mobile/img/music_dx.png" : "dx",
+		"https://maimaidx-eng.com/maimai-mobile/img/music_standard.png" : "st"
+	};
+    	function initInLvl(){
 		let s = document.createElement('script');
 		s.setAttribute('type', 'text/javascript');
-		s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/in_lv_dx.js'); 
+		s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/in_lv_dx.js');
 		s.addEventListener('load',()=>{
 			//parse into map for better searching
-			all_tracks = [];
-			in_lv.forEach((e)=>{
+			let all_tracks = [];
+			in_lv.forEach((e)=>{//in_lv is loaded from the src from @sgimera
 				let key = (e.dx ? "dx" : "st") + "\t" + e.n + "\t";
 				for(let i = 0;i<e.lv.length;i++){
 					if(e.lv[i] === 0)break;//remas not exist;
@@ -22,11 +44,7 @@
 		});
 		document.getElementsByTagName('head')[0].appendChild(s);
 	}
-	function calculate(type,name,diff,percentage){
-		let key = type+"\t"+name+"\t"+diff;
-		return calculate(key);
-	}
-	function calculate(key,percentage){
+    	function calculate(key,percentage){
 			let inLv = window.localStorage.getItem(key+"\tinLv");
 		if(!inLv){
 			console.log("inner level not available");
@@ -34,7 +52,7 @@
 		} else if (inLv < 0){
 			inLv = -1*inLv;
 		}
-		rating = 
+		const rating =
 		(percentage >= 1005000)?15:
 		(percentage >= 1000000)?14:
 		(percentage >= 999900)?13.5:
@@ -53,27 +71,72 @@
 		(percentage >= 300000)?3:
 		(percentage >= 200000)?2:
 		(percentage >= 100000)?1:0;
-		
+
 		const tmp = Math.min(1005000,percentage) * rating * inLv;
-		tmpmod = tmp % 1000000;
+		const tmpmod = tmp % 1000000;
 		return (tmp-tmpmod)/1000000;
 	}
-	//initialize internal level from sgimera
-	//#adore#
-	if(
-		!window.localStorage.getItem("lastUpdateTime") || 
-		(Date.now() - 86400000) > parseInt(window.localStorage.getItem("lastUpdateTime"))){
-		initInLvl();
-	} 
-	//Reference: 
-	//https://sgimera.github.io/mai_RatingAnalyzer/maidx_disp_rating.js
-	//https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/
-	//in_lv_dx.js
-	//calc_rating_dx.js
-	//display_rating_dx.js
-	//check current url
+
+    function aggregate(){
+		let ratings = [];
+		for(let key of window.localStorage.getItem("all_tracks").split("\r\n")){
+			let percentage = window.localStorage.getItem(key+"\tpercentage")||0;
+			let rating = calculate(key,percentage);
+			if(rating>0)console.log(key+" "+rating);
+			let info = key.split("\t");
+			if(rating>0)ratings.push({isDX:info[0]==="dx",name:info[1],diff:info[2],rating:rating,inLv:window.localStorage.getItem(key+"\tinLv"),percentage:percentage});
+		}
+		console.log(ratings);
+		//STD rating
+		let ST = ratings.filter((e)=>e.isDX).sort((a,b)=>b.rating-a.rating).slice(0,15);
+		console.log(ST);
+		ST.forEach((e)=>injectHighRatingDetail(e.isDX,e.diff,e.name,e.inLv,e.rating,e.percentage));
+		let DX = ratings.filter((e)=>!e.isDX).sort((a,b)=>b.rating-a.rating).slice(0,25);
+		console.log(DX);
+		DX.forEach((e)=>injectHighRatingDetail(e.isDX,e.diff,e.name,e.inLv,e.rating,e.percentage));
+		let finalRating = ST.reduce((s,v)=>s+v.rating,0) + DX.reduce((s,v)=>s+v.rating,0);
+		console.log(finalRating);
+	}
 	
-	for(key of window.localStorage.getItem("all_tracks").split("\r\n")){
-    rating = calculate(key,window.localStorage.getItem(key+"\tpercentage")||0);
-    console.log(key+" "+rating);
-}
+	function injectHighRatingDetail(isDX,diff,name,inLv,rating,percentage){
+		let template = '<div class="music_score_back pointer w_400 m_3 p_5 f_0">'+'\n'
+		+	'<img class="h_20 f_l diff">'+'\n'
+		+	'<img class="music_kind_icon f_r">'+'\n'
+		+	'<div class="clearfix"></div>'+'\n'
+		+	'<div class="music_lv_block f_r t_c f_14"></div>'+'\n'
+		+	'<div class="music_name_block w_349 t_l f_13 break"></div>'+'\n'
+		+	'<div class="music_score_block w_80 t_r f_l f_12 rating"></div>'+'\n'
+		+	'<div class="music_score_block w_96 t_r f_l f_12 percentage"></div>'+'\n'
+		+	'<div class="clearfix"></div>'+'\n'
+		+'</div>';
+		let injectElement = $(template);
+		injectElement.addClass("music_"+diff+"_score_back");
+		injectElement.find(".diff").attr("src","https://maimaidx-eng.com/maimai-mobile/img/diff_"+diff+".png");
+		injectElement.find(".music_kind_icon").attr("src","https://maimaidx-eng.com/maimai-mobile/img/music_"+(isDX?"dx":"standard")+".png");
+		injectElement.find(".music_lv_block").html(inLv);
+		injectElement.find(".music_name_block").html(name);
+		injectElement.find(".music_score_block.rating").html(rating);
+		injectElement.find(".music_score_block.percentage").html(percentage+"%");
+		$("div.see_through_block").append(injectElement);
+	}
+    $(document).ready(()=>{
+        if(!window.localStorage.getItem("lastUpdateTime") || (Date.now() - 86400000) > parseInt(window.localStorage.getItem("lastUpdateTime"))){
+            initInLvl();
+        }
+aggregate();
+    });
+})();
+
+	//music_<diff>_score_back
+	//src="https://maimaidx-eng.com/maimai-mobile/img/diff_basic.png"
+	//src="https://maimaidx-eng.com/maimai-mobile/img/music_dx.png"
+	/*
+	<div class="music_score_back pointer w_450 m_15 p_3 f_0">
+		<img class="h_20 f_l diff">
+		<img class="music_kind_icon f_r">
+		<div class="clearfix"></div>
+		<div class="music_lv_block f_r t_c f_14"></div>
+		<div class="music_name_block t_l f_13 break"></div>
+	</div>
+	
+	*/
