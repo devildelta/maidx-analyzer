@@ -1,4 +1,4 @@
-// ==UserScript==
+﻿// ==UserScript==
 // @name         maidx-analyzer-calculator
 // @namespace    https://devildelta.github.io/maidx-analyzer/
 // @version      1.0
@@ -9,8 +9,10 @@
 // ==/UserScript==
 
 (function() {
-    'use strict';
-    const LEVEL_STRING = ["basic","advanced","expert","master","remaster"];
+	'use strict';
+	const DX_COUNT = 15;
+	const ST_COUNT = 25;
+	const LEVEL_STRING = ["basic","advanced","expert","master","remaster"];
 	const imgsrc = {
 		"https://maimaidx-eng.com/maimai-mobile/img/diff_basic.png" : "basic",
 		"https://maimaidx-eng.com/maimai-mobile/img/diff_advanced.png" : "advanced",
@@ -20,7 +22,7 @@
 		"https://maimaidx-eng.com/maimai-mobile/img/music_dx.png" : "dx",
 		"https://maimaidx-eng.com/maimai-mobile/img/music_standard.png" : "st"
 	};
-    	function initInLvl(){
+		function initInLvl(){
 		let s = document.createElement('script');
 		s.setAttribute('type', 'text/javascript');
 		s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/in_lv_dx.js');
@@ -44,13 +46,15 @@
 		});
 		document.getElementsByTagName('head')[0].appendChild(s);
 	}
-    	function calculate(key,percentage){
+		function calculate(key,percentage){
+			if(!percentage)return 0;
 			let inLv = window.localStorage.getItem(key+"\tinLv");
 		if(!inLv){
 			console.log("inner level not available");
 			return null;
 		} else if (inLv < 0){
 			inLv = -1*inLv;
+			console.log("Uncertain inner level")
 		}
 		const rating =
 		(percentage >= 1005000)?15:
@@ -77,7 +81,9 @@
 		return (tmp-tmpmod)/1000000;
 	}
 
-    function aggregate(){
+	function aggregate(){
+		let playcount = parseInt($(".m_5.m_t_10.t_r.f_12").html().match("：(\\d+)")[1]);
+		console.log(playcount);//get play count before inject the statistics
 		let ratings = [];
 		for(let key of window.localStorage.getItem("all_tracks").split("\r\n")){
 			let percentage = window.localStorage.getItem(key+"\tpercentage")||0;
@@ -88,30 +94,48 @@
 		}
 		console.log(ratings);
 		//STD rating
-		let ST = ratings.filter((e)=>e.isDX).sort((a,b)=>b.rating-a.rating).slice(0,15);
+		let ST = ratings.filter((e)=>!e.isDX).sort((a,b)=>b.rating-a.rating).slice(0,ST_COUNT);
 		console.log(ST);
 		ST.forEach((e)=>injectHighRatingDetail(e.isDX,e.diff,e.name,e.inLv,e.rating,e.percentage));
-		let DX = ratings.filter((e)=>!e.isDX).sort((a,b)=>b.rating-a.rating).slice(0,25);
+		let DX = ratings.filter((e)=>e.isDX).sort((a,b)=>b.rating-a.rating).slice(0,DX_COUNT);
 		console.log(DX);
 		DX.forEach((e)=>injectHighRatingDetail(e.isDX,e.diff,e.name,e.inLv,e.rating,e.percentage));
-		let finalRating = ST.reduce((s,v)=>s+v.rating,0) + DX.reduce((s,v)=>s+v.rating,0);
 		let STRating = ST.map((e)=>e.rating).reduce((s,v)=>s+v,0);
 		let DXRating = DX.map((e)=>e.rating).reduce((s,v)=>s+v,0);
-		//let gradeRating = map imgsrc to rating points.
-		console.log(STRating+" + "+DXRating+" = "+finalRating);
-		injectStatistics(STRating,DXRating);
+		/*
+		初心者
+		https://maimaidx-eng.com/maimai-mobile/img/grade_01e5MjC8SF.png
+		二段
+		https://maimaidx-eng.com/maimai-mobile/img/grade_06Wi5QUShL.png
+		五段
+		https://maimaidx-eng.com/maimai-mobile/img/grade_09sA8D6X7e.png
+		九段
+		https://maimaidx-eng.com/maimai-mobile/img/grade_13e4SAdtXj.png
+		*/
+		let gradeRating = (parseInt($("div.basic_block > > img.h_25.f_l").attr("src").match("grade_(\\d\\d)")[1])-1)*100;
+		let finalRating = STRating + DXRating + gradeRating;
+		console.log("PC"+playcount+" : "+STRating+" + "+DXRating+" + "+gradeRating+" = "+finalRating);
+		//assert
+		if(parseInt($(".rating_block.f_11").text()) !== finalRating)alert("Inconsistent rating! Some calculation should be wrong... T_T");
+		let historicalRatings = JSON.parse(window.localStorage.getItem("historical_ratings")||"[]");
+		if(historicalRatings.findIndex((e)=>e.playcount === playcount) < 0)
+			historicalRatings.push({playcount:playcount,rating:finalRating,STRating:STRating,DXRating:DXRating,gradeRating:gradeRating});
+		window.localStorage.setItem("historical_ratings",JSON.stringify(historicalRatings));
+		
+		
+		injectStatistics(STRating,DXRating,gradeRating);
 	}
-	
+
 	function injectHighRatingDetail(isDX,diff,name,inLv,rating,percentage){
 		let template = '<div class="music_score_back pointer w_400 m_3 p_5 f_0">'+'\n'
-		+	'<img class="h_20 f_l diff">'+'\n'
-		+	'<img class="music_kind_icon f_r">'+'\n'
-		+	'<div class="clearfix"></div>'+'\n'
-		+	'<div class="music_lv_block f_r t_c f_14"></div>'+'\n'
-		+	'<div class="music_name_block w_349 t_l f_13 break"></div>'+'\n'
-		+	'<div class="music_score_block w_80 t_r f_l f_12 rating"></div>'+'\n'
-		+	'<div class="music_score_block w_96 t_r f_l f_12 percentage"></div>'+'\n'
-		+	'<div class="clearfix"></div>'+'\n'
+		+   '<img class="h_20 f_l diff">'+'\n'
+		+   '<img class="music_kind_icon f_r">'+'\n'
+		+   '<div class="clearfix"></div>'+'\n'
+		+   '<div class="music_lv_block f_r t_c f_14"></div>'+'\n'
+		+   '<div class="music_name_block w_349 t_l f_13 break"></div>'+'\n'
+		+   '<div class="music_score_block w_80 t_r f_l f_12 rating"></div>'+'\n'
+		+   '<div class="music_score_block w_96 t_r f_l f_12 percentage"></div>'+'\n'
+		+   '<div class="clearfix"></div>'+'\n'
 		+'</div>';
 		let injectElement = $(template);
 		injectElement.addClass("music_"+diff+"_score_back");
@@ -123,17 +147,21 @@
 		injectElement.find(".music_score_block.percentage").html(percentage+"%");
 		$("div.see_through_block").append(injectElement);
 	}
-	
-	function injectStatistics(STRating,DXRating){
-		$(".basic_block").after($("<div class='m_5 m_t_10 t_r f_12'>Standard Rating: "+STRating+" Rating per song: "+(STRating/15).toFixed(2)+"</div>"));
-		$(".basic_block").after($("<div class='m_5 m_t_10 t_r f_12'>DX Rating: "+DXRating+" Rating per song: "+(DXRating/25).toFixed(2)+"</div>"));
+
+	function injectStatistics(STRating,DXRating,gradeRating){
+		let src = $("div.basic_block > > img.h_25.f_l").attr("src");//Current Grade image.
+		$(".basic_block").after($("<table class='f_12' id='ratings'><tr><td></td><td>Rating</td><td>Rating Per song</td></tr></table>"));
+		$("#ratings").append($("<tr class='h_25'><td>Standard Rating</td><td class='t_r'>"+STRating+"</td><td class='t_r'>"+(STRating/ST_COUNT).toFixed(2)+"</td></tr>"))
+		$("#ratings").append($("<tr class='h_25'><td>DX Rating</td><td class='t_r'>"+DXRating+"</td><td class='t_r'>"+(DXRating/DX_COUNT).toFixed(2)+"</td></tr>"))
+		$("#ratings").append($("<tr class='h_25'><td>Grade Rating</td><td class='t_r'>"+gradeRating+"</td><td class='t_r'><img class='h_25' src='"+src+"'></td></tr>"))
+		$("#ratings").append($("<tr class='h_25'><td>Final Rating</td><td class='t_r'>"+(STRating + DXRating + gradeRating)+"</td><td></td></tr>"))
 	}
-    $(document).ready(()=>{
-        if(!window.localStorage.getItem("lastUpdateTime") || (Date.now() - 86400000) > parseInt(window.localStorage.getItem("lastUpdateTime"))){
-            initInLvl();
-        }
-aggregate();
-    });
+	$(document).ready(()=>{
+		if(!window.localStorage.getItem("lastUpdateTime") || (Date.now() - 86400000) > parseInt(window.localStorage.getItem("lastUpdateTime"))){
+			initInLvl();
+		}
+		aggregate();
+	});
 })();
 
 	//music_<diff>_score_back
@@ -147,5 +175,5 @@ aggregate();
 		<div class="music_lv_block f_r t_c f_14"></div>
 		<div class="music_name_block t_l f_13 break"></div>
 	</div>
-	
+
 	*/
