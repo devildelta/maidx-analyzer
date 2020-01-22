@@ -5,6 +5,7 @@
 // @description  Fetch the best scores from level page and stores into localStorage for later handle.
 // @author       devildelta
 // @match        https://maimaidx-eng.com/maimai-mobile/record/musicLevel/*
+// @match        https://maimaidx-eng.com/maimai-mobile/record/musicGenre/*
 // @grant        none
 // @updateURL    https://devildelta.github.io/maidx-analyzer/fetcher.js
 // @downloadURL  https://devildelta.github.io/maidx-analyzer/fetcher.js
@@ -12,7 +13,6 @@
 
 (function() {
     'use strict';
-    let isVerbose = false;
     const LEVEL_STRING = ["basic","advanced","expert","master","remaster"];
 	const imgsrc = {
 		"https://maimaidx-eng.com/maimai-mobile/img/diff_basic.png" : "basic",
@@ -25,6 +25,7 @@
 	};
 	$(document).ready(()=>{
 		if(document.URL.includes("musicLevel"))fetch_musicLevel();
+		if(document.URL.includes("musicGenre"))fetch_musicGenre();
     });
 	
 	function fetch_musicLevel(){
@@ -43,7 +44,28 @@
 			if(percentage > 0)count++;
 			window.localStorage.setItem(type+"\t"+name+"\t"+diff+"\tpercentage",percentage);
 		});
-		injectStatistics(count+" best records stored for level "+currentLevel);
+		injectStatistics(count+" best records stored for "+currentLevel);
+		
+	}
+	
+	function fetch_musicGenre(){
+		//current level
+		let diff = LEVEL_STRING[$(".diffbtn_selected").parent().val()];
+		//do data fetching
+		let count = 0;
+		Array.of(...$("div.w_450.m_15.p_r.f_0")).forEach((e)=>{
+			//music_master_btn_on
+			let typesrc = $(e).find(e.id ? ("img.music_"+diff+"_btn_on") : ("img.music_kind_icon"))[0].src;
+			let type = imgsrc[typesrc];
+			let name = $(e).find("div.pointer > form > .music_name_block")[0].innerHTML;
+			let lv = $(e).find("div.pointer > form > .music_lv_block")[0].innerHTML;
+			let percentage = $(e).find("div.pointer > form > .music_score_block.w_120")[0];
+			percentage = percentage?percentage.innerHTML.replace("\.","").replace("\%",""):"0";
+			console.log(type+" "+name+" "+diff+" "+lv+" "+percentage);
+			if(percentage > 0)count++;
+			window.localStorage.setItem(type+"\t"+name+"\t"+diff+"\tpercentage",percentage);
+		});
+		injectStatistics(count+" best records stored for "+diff);
 		
 	}
 	
