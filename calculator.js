@@ -25,7 +25,7 @@
 		function initInLvl(){
 		let s = document.createElement('script');
 		s.setAttribute('type', 'text/javascript');
-		s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/in_lv_dx.js');
+		s.setAttribute('src', 'https://devildelta.github.io/maidx-analyzer/in_lv_dx.js');
 		s.addEventListener('load',()=>{
 			//parse into map for better searching
 			let all_tracks = [];
@@ -116,12 +116,16 @@
 		let finalRating = STRating + DXRating + gradeRating;
 		console.log("PC"+playcount+" : "+STRating+" + "+DXRating+" + "+gradeRating+" = "+finalRating);
 		//assert
-		if(parseInt($(".rating_block.f_11").text()) !== finalRating)alert("Inconsistent rating! Some calculation should be wrong... T_T");
-		let historicalRatings = JSON.parse(window.localStorage.getItem("historical_ratings")||"[]");
-		if(historicalRatings.findIndex((e)=>e.playcount === playcount) < 0)
-			historicalRatings.push({playcount:playcount,rating:finalRating,STRating:STRating,DXRating:DXRating,gradeRating:gradeRating});
-		window.localStorage.setItem("historical_ratings",JSON.stringify(historicalRatings));
-		
+		if(parseInt($(".rating_block.f_11").text()) !== finalRating){
+			alert("Inconsistent rating! Some calculation should be wrong... T_T");
+			//do not save if result is not consistent.
+		} else {
+			let historicalRatings = JSON.parse(window.localStorage.getItem("historical_ratings")||"[]");
+			if(historicalRatings.findIndex((e)=>e.playcount === playcount) < 0)
+				historicalRatings.push({playcount:playcount,rating:finalRating,STRating:STRating,DXRating:DXRating,gradeRating:gradeRating,STDetail:ST,DXDetail:DX});
+			window.localStorage.setItem("historical_ratings",JSON.stringify(historicalRatings));
+			window.localStorage.setItem("ratingDetail",JSON.stringify(ratings));
+		}
 		
 		injectStatistics(STRating,DXRating,gradeRating);
 	}
