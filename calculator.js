@@ -1,11 +1,13 @@
 ﻿// ==UserScript==
 // @name         maidx-analyzer-calculator
 // @namespace    https://devildelta.github.io/maidx-analyzer/
-// @version      1.0
+// @version      1.0.1
 // @description  Calculate the rating from collected information, and inject into homepage for display.
 // @author       devildelta
 // @match        https://maimaidx-eng.com/maimai-mobile/playerData/
 // @grant        none
+// @updateURL    https://devildelta.github.io/maidx-analyzer/calculator.js
+// @downloadURL  https://devildelta.github.io/maidx-analyzer/calculator.js
 // ==/UserScript==
 
 (function() {
@@ -167,17 +169,3 @@
 		aggregate();
 	});
 })();
-
-	//music_<diff>_score_back
-	//src="https://maimaidx-eng.com/maimai-mobile/img/diff_basic.png"
-	//src="https://maimaidx-eng.com/maimai-mobile/img/music_dx.png"
-	/*
-	<div class="music_score_back pointer w_450 m_15 p_3 f_0">
-		<img class="h_20 f_l diff">
-		<img class="music_kind_icon f_r">
-		<div class="clearfix"></div>
-		<div class="music_lv_block f_r t_c f_14"></div>
-		<div class="music_name_block t_l f_13 break"></div>
-	</div>
-
-	*/

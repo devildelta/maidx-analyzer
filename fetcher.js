@@ -1,11 +1,13 @@
 ﻿// ==UserScript==
 // @name         maidx-analyzer-fetcher
 // @namespace    https://devildelta.github.io/maidx-analyzer/
-// @version      1.0
+// @version      1.0.1
 // @description  Fetch the best scores from level page and stores into localStorage for later handle.
 // @author       devildelta
 // @match        https://maimaidx-eng.com/maimai-mobile/record/musicLevel/search/*
 // @grant        none
+// @updateURL    https://devildelta.github.io/maidx-analyzer/fetcher.js
+// @downloadURL  https://devildelta.github.io/maidx-analyzer/fetcher.js
 // ==/UserScript==
 
 (function() {
