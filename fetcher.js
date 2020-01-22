@@ -4,7 +4,7 @@
 // @version      1.0.1
 // @description  Fetch the best scores from level page and stores into localStorage for later handle.
 // @author       devildelta
-// @match        https://maimaidx-eng.com/maimai-mobile/record/musicLevel/search/*
+// @match        https://maimaidx-eng.com/maimai-mobile/record/musicLevel/*
 // @grant        none
 // @updateURL    https://devildelta.github.io/maidx-analyzer/fetcher.js
 // @downloadURL  https://devildelta.github.io/maidx-analyzer/fetcher.js
@@ -24,25 +24,28 @@
 		"https://maimaidx-eng.com/maimai-mobile/img/music_standard.png" : "st"
 	};
 	$(document).ready(()=>{
-        //current level
-        let currentLevel = $("div.screw_block.m_15.f_15")[0].innerHTML;
-        //do data fetching
-        if(isVerbose)alert("maidx-analyzer-fetcher activated. Try to fetch "+currentLevel+" info from page and save to localStorage.");
-        let count = 0;
-        Array.of(...$("div.pointer.w_450.m_15.p_3.f_0")).forEach((e)=>{
-            let diff = imgsrc[$(e).find("img.h_20.f_l")[0].src];
-            let type = imgsrc[$(e).find(".music_kind_icon")[0].src];
-            let name = $(e).find(".music_name_block")[0].innerHTML;
-            let lv = $(e).find(".music_lv_block")[0].innerHTML;
-            let percentage = $(e).find(".music_score_block.w_120")[0];
-            percentage = percentage?percentage.innerHTML.replace("\.","").replace("\%",""):"0";
-            console.log(type+" "+name+" "+diff+" "+lv+" "+percentage);
-            if(percentage > 0)count++;
-            window.localStorage.setItem(type+"\t"+name+"\t"+diff+"\tpercentage",percentage);
-        });
-        if(isVerbose)alert(count+" best records stored for level "+currentLevel);
-		injectStatistics(count+" best records stored for level "+currentLevel);
+		if(document.URL.includes("musicLevel"))fetch_musicLevel();
     });
+	
+	function fetch_musicLevel(){
+		//current level
+		let currentLevel = $("div.screw_block.m_15.f_15")[0].innerHTML;
+		//do data fetching
+		let count = 0;
+		Array.of(...$("div.pointer.w_450.m_15.p_3.f_0")).forEach((e)=>{
+			let diff = imgsrc[$(e).find("img.h_20.f_l")[0].src];
+			let type = imgsrc[$(e).find(".music_kind_icon")[0].src];
+			let name = $(e).find(".music_name_block")[0].innerHTML;
+			let lv = $(e).find(".music_lv_block")[0].innerHTML;
+			let percentage = $(e).find(".music_score_block.w_120")[0];
+			percentage = percentage?percentage.innerHTML.replace("\.","").replace("\%",""):"0";
+			console.log(type+" "+name+" "+diff+" "+lv+" "+percentage);
+			if(percentage > 0)count++;
+			window.localStorage.setItem(type+"\t"+name+"\t"+diff+"\tpercentage",percentage);
+		});
+		injectStatistics(count+" best records stored for level "+currentLevel);
+		
+	}
 	
 	function injectStatistics(line){
 		$("table.f_0").append($("<tr><td colspan='8' class='f_11'>"+line+"</td></tr>"));
