@@ -39,5 +39,10 @@
             window.localStorage.setItem(type+"\t"+name+"\t"+diff+"\tpercentage",percentage);
         });
         if(isVerbose)alert(count+" best records stored for level "+currentLevel);
+		injectStatistics(count+" best records stored for level "+currentLevel);
     });
+	
+	function injectStatistics(line){
+		$("table.f_0").append($("<tr><td colspan='8' class='f_11'>"+line+"</td></tr>"));
+	}
 })();
