@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         maidx-analyzer-calculator
 // @namespace    https://devildelta.github.io/maidx-analyzer/
-// @version      1.1.0
+// @version      1.2.0
 // @description  Calculate the rating from collected information, and inject into homepage for display.
 // @author       devildelta
 // @match        https://maimaidx-eng.com/maimai-mobile/playerData/
@@ -13,10 +13,11 @@
 
 (function() {
     'use strict';
-    const CURRENT_VERSION = 14;//dx+
+    const CURRENT_VERSION = 15;//dx+
     const CURRENT_COUNT = 15;
     const LEGACY_COUNT = 25;
     const LEVEL_STRING = ["basic","advanced","expert","master","remaster"];
+	const LEVEL_DISP_STRING = ["BASIC","ADVANCED","EXPERT","MASTER","Re:MASTER"];
     const GRADE_RATING_LIST = [0,250,500,750,1000,1200,1400,1500,1600,1700,1800,1850,1900,1950,2000,2010,2020,2030,2040,2050,2060,2070,2080,2090,2100];
     const imgsrc = {
         "https://maimaidx-eng.com/maimai-mobile/img/diff_basic.png" : "basic",
@@ -32,8 +33,8 @@
         if(!window.localStorage.getItem("lastUpdateTime") || (Date.now() - 86400000) > parseInt(window.localStorage.getItem("lastUpdateTime"))){
             let s = document.createElement('script');
             s.setAttribute('type', 'text/javascript');
+			s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/maidx_in_lv_splash.js');
             //s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/maidx_in_lv_dxplus.js');
-            s.setAttribute('src', 'https://devildelta.github.io/maidx-analyzer/in_lv_dx.js');
             s.addEventListener('load',()=>{
                 //parse into map for better searching
                 let all_tracks = [];
@@ -95,31 +96,7 @@
     function aggregate(){
         let playcount = parseInt($(".m_5.m_t_10.t_r.f_12").html().match("：(\\d+)")[1]);
         console.log("playcount = "+playcount);//get play count before inject the statistics
-        let ratings = [];
-        for(let key of window.localStorage.getItem("all_tracks").split("\r\n")){
-            let trackInfo = JSON.parse(window.localStorage.getItem(key));
-            for(let i = 0;i < 5;i++){
-                let inLv = trackInfo.lv[i];
-                if(inLv === 0)break;
-                let key_level = key+"\t"+LEVEL_STRING[i];
-                let percentage = window.localStorage.getItem(key_level+"\tpercentage")||0;
-                let rating = calculate(inLv, percentage);
-                if(rating > 0){
-                    //console.log(key_level+" "+rating);
-                    let info = key.split("\t");
-                    ratings.push({
-                        isDX:info[0]==="dx",
-                        name:info[1],
-                        diff:LEVEL_STRING[i],
-                        rating:rating,
-                        inLv:inLv,
-                        percentage:percentage,
-                        version:trackInfo.v
-                    });
-                }
-                
-            }
-        }
+        let ratings = extractFromMemory();
         console.log(ratings);
 
         let legacyTracks = ratings
@@ -154,7 +131,8 @@
         let finalRating = legacyRating + currentRating + gradeRating;
         console.log("PC"+playcount+" : "+legacyRating+" + "+currentRating+" + "+gradeRating+" = "+finalRating);
         //assert
-        if(parseInt($(".rating_block.f_11").text()) !== finalRating){
+        /*
+		if(parseInt($(".rating_block.f_11").text()) !== finalRating){
             alert("Inconsistent rating! Please update the rating records from Records>Song Scores.");
             //do not save if result is not consistent.
         } else {
@@ -172,9 +150,38 @@
             window.localStorage.setItem("historical_ratings",JSON.stringify(historicalRatings));
             //window.localStorage.setItem("ratingDetail",JSON.stringify(ratings));
         }
-        
+        */
         injectStatistics(legacyRating,currentRating,gradeRating);
     }
+	
+    function extractFromMemory(){
+		let ratings = [];
+		for(let key of window.localStorage.getItem("all_tracks").split("\r\n")){
+            let trackInfo = JSON.parse(window.localStorage.getItem(key));
+            for(let i = 0;i < 5;i++){
+                let inLv = trackInfo.lv[i];
+                if(inLv === 0)break;
+                let key_level = key+"\t"+LEVEL_STRING[i];
+                let percentage = window.localStorage.getItem(key_level+"\tpercentage")||0;
+                let rating = calculate(inLv, percentage);
+                if(rating > 0){
+                    //console.log(key_level+" "+rating);
+                    let info = key.split("\t");
+                    ratings.push({
+                        isDX:info[0]==="dx",
+                        name:info[1],
+                        diff:LEVEL_STRING[i],
+                        rating:rating,
+                        inLv:inLv,
+                        percentage:percentage,
+                        version:trackInfo.v
+                    });
+                }
+                
+            }
+        }
+		return ratings;
+	}
 
     function injectHighRatingDetail(isDX,diff,name,inLv,rating,percentage){
         let template = '<div class="music_score_back pointer w_400 m_3 p_5 f_0">'+'\n'
@@ -194,7 +201,7 @@
         injectElement.find(".music_lv_block").html(inLv);
         injectElement.find(".music_name_block").html(name);
         injectElement.find(".music_score_block.rating").html(rating);
-        injectElement.find(".music_score_block.percentage").html(percentage+"%");
+        injectElement.find(".music_score_block.percentage").html((percentage / 10000).toFixed(4)+"%");
         $("div.see_through_block").append(injectElement);
     }
 
@@ -207,7 +214,7 @@
         $("#ratings").append($("<tr class='h_25'><td>Final Rating</td><td class='t_r'>"+(legacyRating + currentRating + gradeRating)+"</td><td></td></tr>"))
     }
     $(document).ready(()=>{
-        new Promise(initInLvl).then(aggregate);
+        new Promise(initInLvl).then(exportRating);
     });
 })();
 
