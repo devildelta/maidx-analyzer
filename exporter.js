@@ -14,6 +14,39 @@
 (function() {
     'use strict';
 
+    const LEVEL_STRING = ["basic","advanced","expert","master","remaster"];
+	const LEVEL_DISP_STRING = ["BASIC","ADVANCED","EXPERT","MASTER","Re:MASTER"];
+
+    function initInLvl(resolve,reject){//promise executor
+        //if not updated in last 24 hrs, grap a fresh copy
+        if(!window.localStorage.getItem("lastUpdateTime") || (Date.now() - 86400000) > parseInt(window.localStorage.getItem("lastUpdateTime"))){
+            let s = document.createElement('script');
+            s.setAttribute('type', 'text/javascript');
+			s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/maidx_in_lv_splash.js');
+            //s.setAttribute('src', 'https://sgimera.github.io/mai_RatingAnalyzer/scripts_maimai/maidx_in_lv_dxplus.js');
+            s.addEventListener('load',()=>{
+                //parse into map for better searching
+                let all_tracks = [];
+                in_lv.forEach((e)=>{//in_lv is loaded from the src from @sgimera
+                    let key = (e.dx ? "dx" : "st") + "\t" + e.n;
+                    delete e.n;if(e.nn)delete e.nn;
+                    console.log(key+" "+e);
+                    window.localStorage.setItem(key,JSON.stringify(e));
+                    all_tracks.push(key);
+                });
+                console.log("total track num = "+all_tracks.length);
+                window.localStorage.setItem("update_mlist",update_mlist);
+                window.localStorage.setItem("lastUpdateTime",Date.now());
+                window.localStorage.setItem("all_tracks",all_tracks.join("\r\n"));
+				console.log("level list refreshed.");
+                resolve();
+            });
+            document.getElementsByTagName('head')[0].appendChild(s);
+        } else {
+			console.log("level list updated in 24 hours. Skip refresh.");
+            resolve();
+        }
+    }
 	function exLv(inLv){
 		inLv = Math.abs(inLv);
 		return Math.floor(inLv)+""+((inLv-Math.floor(inLv)) > 0.5 ? "+" : "");
@@ -50,13 +83,7 @@
 	}
 
     $(document).ready(()=>{
-        new Promise(function(resolve,reject){
-			let s = document.createElement('script');
-            s.setAttribute('type', 'text/javascript');
-			s.setAttribute('src', 'https://devildelta.github.io/maidx-analyzer/common.js');
-			resolve();
-		})
-		.then(initInLvl)
+        new Promise(initInLvl)
 		.then(exportRating);
     });
 })();
